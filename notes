@@ -1,0 +1,138 @@
+-5989.55
+11993.1 ---> 511
+
+
+-5998.97
+12009.93-- 510
+
+-5999.03
+12004.06 -- 012
+
+
+
+
+```{r}
+deseason_cnt
+```
+
+```{r}
+merge_ts_6months<-ts(c(deseason_cnt[1:182],tail(deseason_cnt,-547)),frequency=1,start=c(1,1))
+plot(merge_ts_6months)
+```
+```{r}
+diff_merge_ts_6months<- diff(ts(c(deseason_cnt[1:182],tail(deseason_cnt,-547)),frequency=1,start=c(1,1)),differences=1)
+plot(diff_merge_ts_6months)
+```
+Série bien stationnaire avec d=1.
+
+```{r}
+acf(diff_merge_ts_6months)
+pacf(diff_merge_ts_6months)
+```
+3.
+Modèles possibles:
+ACF tend vers 0 et PACF tend vers 0 donc 3 modèles possibles:
+-MA(1) d'après l'ACF (après une différenciation de la série originale). (a)
+-AR(5) d'après le PACF (après une différenciation de la série originale). (b)
+-ARIMA(p=5,d=1,q=1).
+On considère ARIMA(5,1,1) car (a) puis (b).
+```{r}
+arima_6_months_511<-arima(merge_ts_6months,order = c(5, 1, 1))
+fitted_arima_6_months_511 <-merge_ts_6months-arima_6_months_511$residuals
+plot(fitted_arima_6_months_511,col="red")
+lines(merge_ts_6months)
+arima_6_months_511
+```
+en rouge: modèle ARIMA(5,1,1) pour la série temporelle merge_ts_6months
+en noir: merge_ts_6months
+Diminution considérable du AIC ! (on passe de ~12000 à ~6256.9).
+
+```{r}
+Box.test(arima_6_months_511$residuals,lag=20,type="Ljung")
+```
+On voit que la p-value ~0.314 pour Box-Ljung test est  >0.05 donc les 20 premiers résidus sont indépendants.(auto corrélation =0 pour les 20 premiers résidus -->acceptation de l'hypothèse nulle du test).
+On voit bien que l'opération de concaténation des périodes  2011-mi 2011  | mi 2012-2013 à rendus les résidus non auto corrélés. 
+-->résidus valident pour le modèle (bruit blanc).
+```{r}
+acf(arima_6_months_511$residuals,lag.max=20)
+pacf(arima_6_months_511$residuals,lag.max=20)
+
+```
+Pas d'auto-corrélation ni d'auto corrélation partielle pour les résidus (20 premiers) --> résidu est bien un bruit blanc.
+
+```{r}
+plot(arima_6_months_511$residuals)
+sprintf("Moyenne des résidus:%f et Variance des résidus: %f",round(mean(arima_6_months_511$residuals),digits=2),round(var(arima_6_months_511$residuals),digits=2))
+```
+résidus un peu près centrés + variance un peu près constante (d'après le graphique) --> résidus bruits blancs (gaussien).
+
+```{r}
+arima_6_months_510<-arima(merge_ts_6months,order = c(5, 1, 0))
+fitted_arima_6_months_510 <-merge_ts_6months-arima_6_months_510$residuals
+plot(fitted_arima_6_months_510,col="red")
+lines(merge_ts_6months)
+arima_6_months_510
+```
+en rouge: modèle ARIMA(5,1,0) pour la série temporelle merge_ts_6months
+en noir: merge_ts_6months
+Diminution considérable du AIC ! (on passe de ~12000 à ~6263.33).
+
+```{r}
+Box.test(arima_6_months_510$residuals,lag=20,type="Ljung")
+```
+On voit que la p-value ~0.2271 pour Box-Ljung test est  >0.05 donc les 20 premiers résidus sont indépendants.(auto corrélation =0 pour les 20 premiers résidus -->acceptation de l'hypothèse nulle du test).
+On voit bien que l'opération de concaténation des périodes  2011-mi 2011  | mi 2012-2013 à rendus les résidus non auto corrélés. 
+-->résidus valident pour le modèle (bruit blanc).
+```{r}
+acf(arima_6_months_510$residuals,lag.max=20)
+pacf(arima_6_months_510$residuals,lag.max=20)
+```
+Pas d'auto-corrélation ni d'auto corrélation partielle pour les résidus (20 premiers) --> résidu est bien un bruit blanc.
+Rq:
+ACF et PACF:à part un lag différent de 0 pour le PACF et l'ACF qui dépasse l'intervalle de confiance, on peut considérer que c'est un aléa car on a 5% de chance de ne pas être dans l'intervalle de confiance.
+Comme la p-value du test de ce modèle est plus petite que celle du premier modèle, la nullité de l'ACF pour les 20 premiers résidus est moins vraisemblable que pour le premier modèle.
+
+```{r}
+plot(arima_6_months_510$residuals)
+sprintf("Moyenne des résidus:%f et Variance des résidus: %f",round(mean(arima_6_months_510$residuals),digits=2),round(var(arima_6_months_510$residuals),digits=2))
+```
+résidus un peu près centrés + variance un peu près constante (d'après le graphique) --> résidus bruits blancs (gaussien).
+
+
+```{r}
+arima_6_months_011<-arima(merge_ts_6months,order = c(0, 1, 1))
+fitted_arima_6_months_011 <-merge_ts_6months-arima_6_months_011$residuals
+plot(fitted_arima_6_months_011,col="red")
+lines(merge_ts_6months)
+arima_6_months_011
+```
+en rouge: modèle ARIMA(0,1,1) pour la série temporelle merge_ts_6months
+en noir: merge_ts_6months
+Diminution considérable du AIC ! (on passe de ~12000 à ~6272.94).
+
+```{r}
+Box.test(arima_6_months_011$residuals,lag=20,type="Ljung")
+```
+Dans ce cas on observe, des résidus autocorrélés (1.5e-06 < 0.05) --> rejet de l'hypothèse de nullité
+des 20 premières auto-corrélations, résidus non valides!
+```{r}
+acf(arima_6_months_011$residuals,lag.max=20)
+pacf(arima_6_months_011$residuals,lag.max=20)
+```
+On voit bien que pour l'ACF et le PACF, un certain nombre de lag ne sont plus dans l'intervalle de
+confiance à 95%, le test précédent confirme bien qu'il existe des autocorrélations non nulles sur 
+les 20 premiers résidus --> résidus pas indépendants !
+
+```{r}
+plot(arima_6_months_011$residuals)
+sprintf("Moyenne des résidus:%f et Variance des résidus: %f",round(mean(arima_6_months_011$residuals),digits=2),round(var(arima_6_months_011$residuals),digits=2))
+```
+Conclusion: ARIMA(0,1,1) pas valide car les résidus ne sont pas des bruit blancs gaussiens.
+ARIMA(5,1,1) valide (résidus, bruits blancs gaussiens) et AIC=6256.9, Log(vraisemblance)=-3121.45
+ARIMA(5,1,0) valide (résidus, bruits blancs gaussiens) et AIC=6263.33, Log(vraisemblance)=-3125.66.
+Les différences sont vraiment minimes, on choisit ARIMA(5,1,0) pour avoir un modèle plus simple (éviter
+le risque d'overfitting).
+On voit quand meme que l'AIC sans la transformation que nous avons faites était de ~ 12000, on est passé à
+ ~6200 soit un peu près une diminution de ~50%!
+ 
+
